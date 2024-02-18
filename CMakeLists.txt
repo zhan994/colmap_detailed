@@ -36,6 +36,8 @@ project(COLMAP LANGUAGES C CXX)
 set(COLMAP_VERSION "3.8")
 set(COLMAP_VERSION_NUMBER "3800")
 
+set(CMAKE_CUDA_ARCHITECTURES "native")
+
 ################################################################################
 # Include CMake dependencies
 ################################################################################
@@ -325,7 +327,7 @@ if(Qt5_FOUND)
     if(Qt5_POSITION_INDEPENDENT_CODE)
         set(CMAKE_POSITION_INDEPENDENT_CODE ON)
         # Workaround for Qt5 CMake config bug under Ubuntu 20.04: https://gitlab.kitware.com/cmake/cmake/-/issues/16915
-        if(${Qt5_VERSION} VERSION_EQUAL "5.12.8" AND TARGET Qt5::Core)
+        if(TARGET Qt5::Core)
             get_property(core_options TARGET Qt5::Core PROPERTY INTERFACE_COMPILE_OPTIONS)
             string(REPLACE "-fPIC" "" new_qt5_core_options ${core_options})
             set_property(TARGET Qt5::Core PROPERTY INTERFACE_COMPILE_OPTIONS ${new_qt5_core_options})
