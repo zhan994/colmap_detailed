@@ -101,13 +101,14 @@ void UpdateImageReaderOptionsFromCameraMode(ImageReaderOptions& options,
   }
 }
 
+// step: 1. 特征检测
 int RunFeatureExtractor(int argc, char** argv) {
   std::string image_list_path;
   int camera_mode = -1;
   std::string descriptor_normalization = "l1_root";
 
   OptionManager options;
-  options.AddDatabaseOptions();
+  options.AddDatabaseOptions(); // 新增数据库选项
   options.AddImageOptions();
   options.AddDefaultOption("camera_mode", &camera_mode);
   options.AddDefaultOption("image_list_path", &image_list_path);

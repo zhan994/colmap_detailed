@@ -98,6 +98,9 @@ int main(int argc, char** argv) {
   Q_INIT_RESOURCE(resources);
 #endif
 
+  // note: 1. 特征检测 RunFeatureExtractor
+  // note: 2. 特征匹配 RunExhaustiveMatcher
+  // note: 3. sfm空三 RunMapper
   std::vector<std::pair<std::string, command_func_t>> commands;
   commands.emplace_back("gui", &RunGraphicalUserInterface);
   commands.emplace_back("automatic_reconstructor", &RunAutomaticReconstructor);
@@ -170,6 +173,7 @@ int main(int argc, char** argv) {
       int command_argc = argc - 1;
       char** command_argv = &argv[1];
       command_argv[0] = argv[0];
+      // note: 指定功能以及传入相关参数的入口
       return matched_command_func(command_argc, command_argv);
     }
   }
