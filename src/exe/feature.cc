@@ -101,44 +101,48 @@ void UpdateImageReaderOptionsFromCameraMode(ImageReaderOptions& options,
   }
 }
 
-// step: 1. 特征检测
+// api: 特征检测
 int RunFeatureExtractor(int argc, char** argv) {
-  std::string image_list_path;
-  int camera_mode = -1;
-  std::string descriptor_normalization = "l1_root";
+  // step: 1 参数解析
+  std::string image_list_path;                       // 默认 ""
+  int camera_mode = -1;                              // 默认 -1
+  std::string descriptor_normalization = "l1_root";  // 默认 l1_root
 
   OptionManager options;
-  options.AddDatabaseOptions(); // 新增数据库选项
-  options.AddImageOptions();
-  options.AddDefaultOption("camera_mode", &camera_mode);
+  options.AddDatabaseOptions();  // 新增数据库参数
+  options.AddImageOptions();     // 新增图片参数
+  options.AddDefaultOption("camera_mode", &camera_mode);  // 相机模式
   options.AddDefaultOption("image_list_path", &image_list_path);
-  options.AddDefaultOption("descriptor_normalization", &descriptor_normalization,
-                           "{'l1_root', 'l2'}");
+  // 描述子计算范数
+  options.AddDefaultOption("descriptor_normalization",
+                           &descriptor_normalization, "{'l1_root', 'l2'}");
+  // 特征提取参数，包含image_reader和sift_extraction
   options.AddExtractionOptions();
-  options.Parse(argc, argv);
+  options.Parse(argc, argv);  // 解析命令行参数
 
   ImageReaderOptions reader_options = *options.image_reader;
   reader_options.database_path = *options.database_path;
   reader_options.image_path = *options.image_path;
-
+  // 更新image_reader参数
   if (camera_mode >= 0) {
     UpdateImageReaderOptionsFromCameraMode(reader_options,
                                            (CameraMode)camera_mode);
   }
 
+  // 描述子计算范数
   StringToLower(&descriptor_normalization);
   if (descriptor_normalization == "l1_root") {
     options.sift_extraction->normalization =
-      SiftExtractionOptions::Normalization::L1_ROOT;
+        SiftExtractionOptions::Normalization::L1_ROOT;
   } else if (descriptor_normalization == "l2") {
     options.sift_extraction->normalization =
-      SiftExtractionOptions::Normalization::L2;
+        SiftExtractionOptions::Normalization::L2;
   } else {
-    std::cerr << "ERROR: Invalid `descriptor_normalization`"
-              << std::endl;
+    std::cerr << "ERROR: Invalid `descriptor_normalization`" << std::endl;
     return EXIT_FAILURE;
   }
 
+  // 图片列表更新
   if (!image_list_path.empty()) {
     reader_options.image_list = ReadTextFileLines(image_list_path);
     if (reader_options.image_list.empty()) {

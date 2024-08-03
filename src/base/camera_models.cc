@@ -53,6 +53,7 @@ namespace colmap {
   const std::vector<size_t> CameraModel::extra_params_idxs =    \
       CameraModel::InitializeExtraParamsIdxs();
 
+// note: 通过所有相机模型定义的宏来执行上述宏定义
 CAMERA_MODEL_CASES
 
 #undef CAMERA_MODEL_CASE

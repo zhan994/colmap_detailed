@@ -69,6 +69,12 @@ namespace colmap {
 // PER_FOLDER or PER_IMAGE settings.
 enum class CameraMode { AUTO = 0, SINGLE = 1, PER_FOLDER = 2, PER_IMAGE = 3 };
 
+/**
+ * \brief 根据相机模式更新image_reader参数
+ * 
+ * \param options image_reader参数
+ * \param mode  相机模式
+ */
 void UpdateImageReaderOptionsFromCameraMode(ImageReaderOptions& options,
                                             CameraMode mode);
 

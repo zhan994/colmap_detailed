@@ -60,6 +60,7 @@ struct PoissonMeshingOptions;
 struct DelaunayMeshingOptions;
 }  // namespace mvs
 
+// 选项参数管理器
 class OptionManager {
  public:
   OptionManager(bool add_project_options = true);
@@ -82,9 +83,10 @@ class OptionManager {
   void AddAllOptions();
   void AddLogOptions();
   void AddRandomOptions();
-  void AddDatabaseOptions();
-  void AddImageOptions();
-  void AddExtractionOptions();
+
+  void AddDatabaseOptions();    // api: 数据库路径
+  void AddImageOptions();       // api: 图片路径
+  void AddExtractionOptions();  // api: 特征提取
   void AddMatchingOptions();
   void AddExhaustiveMatchingOptions();
   void AddSequentialMatchingOptions();
@@ -100,9 +102,26 @@ class OptionManager {
   void AddDelaunayMeshingOptions();
   void AddRenderOptions();
 
+  /**
+   * \brief // api: 新增required选项
+   *
+   * \tparam T
+   * \param name 选项名称
+   * \param option 选项变量地址
+   * \param help_text 说明
+   */
   template <typename T>
   void AddRequiredOption(const std::string& name, T* option,
                          const std::string& help_text = "");
+
+  /**
+   * \brief // api: 新增default选项
+   *
+   * \tparam T
+   * \param name 选项名称
+   * \param option 选项变量地址
+   * \param help_text 说明
+   */
   template <typename T>
   void AddDefaultOption(const std::string& name, T* option,
                         const std::string& help_text = "");
@@ -121,8 +140,8 @@ class OptionManager {
   std::shared_ptr<std::string> database_path;
   std::shared_ptr<std::string> image_path;
 
-  std::shared_ptr<ImageReaderOptions> image_reader;
-  std::shared_ptr<SiftExtractionOptions> sift_extraction;
+  std::shared_ptr<ImageReaderOptions> image_reader;        // 图片读取参数
+  std::shared_ptr<SiftExtractionOptions> sift_extraction;  // sift特征提取参数
 
   std::shared_ptr<SiftMatchingOptions> sift_matching;
   std::shared_ptr<ExhaustiveMatchingOptions> exhaustive_matching;
@@ -143,18 +162,43 @@ class OptionManager {
   std::shared_ptr<RenderOptions> render;
 
  private:
+  /**
+   * \brief // api: 新增并注册required选项
+   *
+   * \tparam T
+   * \param name 选项名称
+   * \param option 选项变量地址
+   * \param help_text 说明
+   */
   template <typename T>
   void AddAndRegisterRequiredOption(const std::string& name, T* option,
                                     const std::string& help_text = "");
+
+  /**
+   * \brief // api: 新增并注册default选项
+   *
+   * \tparam T
+   * \param name 选项名称
+   * \param option 选项变量地址
+   * \param help_text 说明
+   */
   template <typename T>
   void AddAndRegisterDefaultOption(const std::string& name, T* option,
                                    const std::string& help_text = "");
 
+  /**
+   * \brief // api: 注册选项
+   *
+   * \tparam T
+   * \param name 选项名称
+   * \param option 选项变量地址
+   */
   template <typename T>
   void RegisterOption(const std::string& name, const T* option);
 
-  std::shared_ptr<boost::program_options::options_description> desc_;
-
+  std::shared_ptr<boost::program_options::options_description>
+      desc_;  // bpo选项描述器
+  // 选项列表，包含bool、int、double和string
   std::vector<std::pair<std::string, const bool*>> options_bool_;
   std::vector<std::pair<std::string, const int*>> options_int_;
   std::vector<std::pair<std::string, const double*>> options_double_;
@@ -184,6 +228,11 @@ class OptionManager {
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation
 ////////////////////////////////////////////////////////////////////////////////
+// note: desc_->add_options()
+// (name, boost::program_options::value<T>(ptr)->required(), str)
+// name表示选项名，ptr表示对应变量的地址，str表示选项说明，required表示需要传入
+// (name, boost::program_options::value<T>(ptr)->default_value(value), str)
+// default_value表示不指定选项值就用默认值value
 
 template <typename T>
 void OptionManager::AddRequiredOption(const std::string& name, T* option,
@@ -223,6 +272,7 @@ void OptionManager::AddAndRegisterDefaultOption(const std::string& name,
   RegisterOption(name, option);
 }
 
+// note: 通过std::is_same来判断当前参数属于哪一个列表存储
 template <typename T>
 void OptionManager::RegisterOption(const std::string& name, const T* option) {
   if (std::is_same<T, bool>::value) {

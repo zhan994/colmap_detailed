@@ -40,6 +40,7 @@
 
 namespace colmap {
 
+// 图片读取选项
 struct ImageReaderOptions {
   // Path to database in which to store the extracted data.
   std::string database_path = "";

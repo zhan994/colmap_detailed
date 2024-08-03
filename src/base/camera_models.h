@@ -80,6 +80,7 @@ namespace colmap {
 
 static const int kInvalidCameraModelId = -1;
 
+// note: 通过宏定义来声明一种相机模型的所有类声明
 #ifndef CAMERA_MODEL_DEFINITIONS
 #define CAMERA_MODEL_DEFINITIONS(model_id_value, model_name_value,             \
                                  num_params_value)                             \
@@ -114,6 +115,7 @@ static const int kInvalidCameraModelId = -1;
                          T* dv);
 #endif
 
+// note: 宏定义所有相机模型
 #ifndef CAMERA_MODEL_CASES
 #define CAMERA_MODEL_CASES                          \
   CAMERA_MODEL_CASE(SimplePinholeCameraModel)       \
@@ -143,6 +145,7 @@ static const int kInvalidCameraModelId = -1;
 // The "Curiously Recurring Template Pattern" (CRTP) is used here, so that we
 // can reuse some shared functionality between all camera models -
 // defined in the BaseCameraModel.
+// note: 相机模型的基础类
 template <typename CameraModel>
 struct BaseCameraModel {
   template <typename T>
@@ -184,6 +187,7 @@ struct BaseCameraModel {
 //   f, cx, cy
 //
 // See https://en.wikipedia.org/wiki/Pinhole_camera_model
+// note: 简易pinhole，id=0，3个参数f, cx, cy
 struct SimplePinholeCameraModel
     : public BaseCameraModel<SimplePinholeCameraModel> {
   CAMERA_MODEL_DEFINITIONS(0, "SIMPLE_PINHOLE", 3)
@@ -198,6 +202,7 @@ struct SimplePinholeCameraModel
 //    fx, fy, cx, cy
 //
 // See https://en.wikipedia.org/wiki/Pinhole_camera_model
+// note: pinhole，id=1, 4个参数fx, fy, cx, cy
 struct PinholeCameraModel : public BaseCameraModel<PinholeCameraModel> {
   CAMERA_MODEL_DEFINITIONS(1, "PINHOLE", 4)
 };
@@ -213,6 +218,7 @@ struct PinholeCameraModel : public BaseCameraModel<PinholeCameraModel> {
 //
 //    f, cx, cy, k
 //
+// note: 简易径向，id=2，4个参数f, cx, cy, k
 struct SimpleRadialCameraModel
     : public BaseCameraModel<SimpleRadialCameraModel> {
   CAMERA_MODEL_DEFINITIONS(2, "SIMPLE_RADIAL", 4)
@@ -228,6 +234,7 @@ struct SimpleRadialCameraModel
 //
 //    f, cx, cy, k1, k2
 //
+// note: 径向，id=3，5个参数f, cx, cy, k1, k2
 struct RadialCameraModel : public BaseCameraModel<RadialCameraModel> {
   CAMERA_MODEL_DEFINITIONS(3, "RADIAL", 5)
 };
@@ -244,6 +251,7 @@ struct RadialCameraModel : public BaseCameraModel<RadialCameraModel> {
 //
 // See
 // http://docs.opencv.org/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html
+// note: opencv，id=4，8个参数fx, fy, cx, cy, k1, k2, p1, p2
 struct OpenCVCameraModel : public BaseCameraModel<OpenCVCameraModel> {
   CAMERA_MODEL_DEFINITIONS(4, "OPENCV", 8)
 };
@@ -260,6 +268,7 @@ struct OpenCVCameraModel : public BaseCameraModel<OpenCVCameraModel> {
 //
 // See
 // http://docs.opencv.org/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html
+// note: opencv鱼眼，id=5，8个参数fx, fy, cx, cy, k1, k2, k3, k4
 struct OpenCVFisheyeCameraModel
     : public BaseCameraModel<OpenCVFisheyeCameraModel> {
   CAMERA_MODEL_DEFINITIONS(5, "OPENCV_FISHEYE", 8)
@@ -276,6 +285,7 @@ struct OpenCVFisheyeCameraModel
 //
 // See
 // http://docs.opencv.org/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html
+// note: 完整opencv，id=6，12个参数fx, fy, cx, cy, k1, k2, p1, p2, k3, k4, k5, k6
 struct FullOpenCVCameraModel : public BaseCameraModel<FullOpenCVCameraModel> {
   CAMERA_MODEL_DEFINITIONS(6, "FULL_OPENCV", 12)
 };
@@ -350,7 +360,9 @@ struct ThinPrismFisheyeCameraModel
 };
 
 // Check whether camera model with given name or identifier exists.
+// api: 通过名称来检查相机模型是否存在
 bool ExistsCameraModelWithName(const std::string& model_name);
+// api: 通过id来检查相机模型是否存在
 bool ExistsCameraModelWithId(const int model_id);
 
 // Convert camera name to unique camera model identifier.
