@@ -80,7 +80,14 @@ namespace colmap {
 
 static const int kInvalidCameraModelId = -1;
 
-// note: 通过宏定义来声明一种相机模型的所有类声明
+// note: 通过宏定义来声明一种相机模型的所有类的静态成员声明
+// api: InitializeFocalLengthIdxs表示初始化参数中焦距的参数索引
+// api: InitializePrincipalPointIdxs表示初始化参数中中心的参数索引
+// api: InitializeExtraParamsIdxs表示初始化参数中其他参数的索引
+// api: InitializeParams表示初始化f,cx,cy
+// api: WorldToImage将归一化的相机坐标系转换到像素坐标系，假设世界相机系为(u, v,
+// 1) api: ImageToWorld将像素坐标系转换到归一化的相机坐标系，生成世界相机系为(u,
+// v, 1) api: Distortion根据畸变参数进行像素去畸变
 #ifndef CAMERA_MODEL_DEFINITIONS
 #define CAMERA_MODEL_DEFINITIONS(model_id_value, model_name_value,             \
                                  num_params_value)                             \
@@ -131,6 +138,7 @@ static const int kInvalidCameraModelId = -1;
   CAMERA_MODEL_CASE(ThinPrismFisheyeCameraModel)
 #endif
 
+// note: 将上述所有相机模型表示为switch的使用方式
 #ifndef CAMERA_MODEL_SWITCH_CASES
 #define CAMERA_MODEL_SWITCH_CASES         \
   CAMERA_MODEL_CASES                      \
@@ -148,6 +156,20 @@ static const int kInvalidCameraModelId = -1;
 // note: 相机模型的基础类
 template <typename CameraModel>
 struct BaseCameraModel {
+  /**
+   * \brief // api: 是否有假参数
+   *
+   * \tparam T
+   * \param model_id
+   * \param params 参数
+   * \param width 成像宽
+   * \param height 成像高
+   * \param min_focal_length_ratio 最小焦距比例
+   * \param max_focal_length_ratio 最大焦距比例
+   * \param max_extra_param 最大参数值m
+   * \return true
+   * \return false
+   */
   template <typename T>
   static inline bool HasBogusParams(const std::vector<T>& params,
                                     const size_t width, const size_t height,
@@ -155,6 +177,18 @@ struct BaseCameraModel {
                                     const T max_focal_length_ratio,
                                     const T max_extra_param);
 
+  /**
+   * \brief // api: 是否有假焦距
+   *
+   * \tparam T
+   * \param params 参数
+   * \param width 成像宽
+   * \param height 成像高
+   * \param min_focal_length_ratio 最小焦距比例
+   * \param max_focal_length_ratio 最大焦距比例
+   * \return true
+   * \return false
+   */
   template <typename T>
   static inline bool HasBogusFocalLength(const std::vector<T>& params,
                                          const size_t width,
@@ -162,18 +196,53 @@ struct BaseCameraModel {
                                          const T min_focal_length_ratio,
                                          const T max_focal_length_ratio);
 
+  /**
+   * \brief // api: 是否有假像中心
+   *
+   * \tparam T
+   * \param params 参数
+   * \param width 成像宽
+   * \param height 成像高
+   * \return true
+   * \return false
+   */
   template <typename T>
   static inline bool HasBogusPrincipalPoint(const std::vector<T>& params,
                                             const size_t width,
                                             const size_t height);
 
+  /**
+   * \brief // api: 是否有假的额外参数
+   *
+   * \tparam T
+   * \param params 参数
+   * \param max_extra_param 最大参数值
+   * \return true
+   * \return false
+   */
   template <typename T>
   static inline bool HasBogusExtraParams(const std::vector<T>& params,
                                          const T max_extra_param);
 
+  /**
+   * \brief // api: 像素转世界相机系的阈值
+   *
+   * \tparam T
+   * \param params 参数
+   * \param threshold 像素阈值
+   * \return T
+   */
   template <typename T>
   static inline T ImageToWorldThreshold(const T* params, const T threshold);
 
+  /**
+   * \brief // api: 迭代去畸变
+   *
+   * \tparam T
+   * \param params 参数
+   * \param u
+   * \param v
+   */
   template <typename T>
   static inline void IterativeUndistortion(const T* params, T* u, T* v);
 };
@@ -285,7 +354,8 @@ struct OpenCVFisheyeCameraModel
 //
 // See
 // http://docs.opencv.org/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html
-// note: 完整opencv，id=6，12个参数fx, fy, cx, cy, k1, k2, p1, p2, k3, k4, k5, k6
+// note: 完整opencv，id=6，12个参数fx, fy, cx, cy, k1, k2, p1, p2, k3, k4, k5,
+// k6
 struct FullOpenCVCameraModel : public BaseCameraModel<FullOpenCVCameraModel> {
   CAMERA_MODEL_DEFINITIONS(6, "FULL_OPENCV", 12)
 };
@@ -359,74 +429,75 @@ struct ThinPrismFisheyeCameraModel
   CAMERA_MODEL_DEFINITIONS(10, "THIN_PRISM_FISHEYE", 12)
 };
 
-// Check whether camera model with given name or identifier exists.
 // api: 通过名称来检查相机模型是否存在
 bool ExistsCameraModelWithName(const std::string& model_name);
 // api: 通过id来检查相机模型是否存在
 bool ExistsCameraModelWithId(const int model_id);
 
-// Convert camera name to unique camera model identifier.
-//
-// @param name         Unique name of camera model.
-//
-// @return             Unique identifier of camera model.
+// api: 将相机模型名转为id
 int CameraModelNameToId(const std::string& model_name);
-
-// Convert camera model identifier to unique camera model name.
-//
-// @param model_id     Unique identifier of camera model.
-//
-// @return             Unique name of camera model.
+// api: 将相机id转为模型名
 std::string CameraModelIdToName(const int model_id);
 
-// Initialize camera parameters using given image properties.
-//
-// Initializes all focal length parameters to the same given focal length and
-// sets the principal point to the image center.
-//
-// @param model_id      Unique identifier of camera model.
-// @param focal_length  Focal length, equal for all focal length parameters.
-// @param width         Sensor width of the camera.
-// @param height        Sensor height of the camera.
+/**
+ * \brief // api: 初始化相机模型参数
+ *
+ * \param model_id
+ * \param focal_length 焦距
+ * \param width 图片宽
+ * \param height 图片高
+ * \return std::vector<double> 所有相机模型的参数
+ */
 std::vector<double> CameraModelInitializeParams(const int model_id,
                                                 const double focal_length,
                                                 const size_t width,
                                                 const size_t height);
 
-// Get human-readable information about the parameter vector order.
-//
-// @param model_id     Unique identifier of camera model.
+/**
+ * \brief // api: 相机模型参数的信息
+ *
+ * \param model_id
+ * \return std::string 参数解释
+ */
 std::string CameraModelParamsInfo(const int model_id);
 
-// Get the indices of the parameter groups in the parameter vector.
-//
-// @param model_id     Unique identifier of camera model.
+/**
+ * \brief // api: 相机模型中的相关参数的索引
+ *
+ * \param model_id
+ * \return const std::vector<size_t>& 索引值列表
+ */
 const std::vector<size_t>& CameraModelFocalLengthIdxs(const int model_id);
 const std::vector<size_t>& CameraModelPrincipalPointIdxs(const int model_id);
 const std::vector<size_t>& CameraModelExtraParamsIdxs(const int model_id);
 
-// Get the total number of parameters of a camera model.
+// api: 相机模型的参数个数
 size_t CameraModelNumParams(const int model_id);
 
-// Check whether parameters are valid, i.e. the parameter vector has
-// the correct dimensions that match the specified camera model.
-//
-// @param model_id      Unique identifier of camera model.
-// @param params        Array of camera parameters.
+/**
+ * \brief // api: 验证模型参数是否有效，参数数量是否和设置一致
+ *
+ * \param model_id
+ * \param params 参数
+ * \return true 有效
+ * \return false 无效
+ */
 bool CameraModelVerifyParams(const int model_id,
                              const std::vector<double>& params);
 
-// Check whether camera has bogus parameters.
-//
-// @param model_id                Unique identifier of camera model.
-// @param params                  Array of camera parameters.
-// @param width                   Sensor width of the camera.
-// @param height                  Sensor height of the camera.
-// @param min_focal_length_ratio  Minimum ratio of focal length over
-//                                maximum sensor dimension.
-// @param min_focal_length_ratio  Maximum ratio of focal length over
-//                                maximum sensor dimension.
-// @param max_extra_param         Maximum magnitude of each extra parameter.
+/**
+ * \brief // api: 验证模型是否有假的参数
+ *
+ * \param model_id
+ * \param params 参数
+ * \param width 成像宽
+ * \param height 成像高
+ * \param min_focal_length_ratio 最小焦距比例
+ * \param max_focal_length_ratio 最大焦距比例
+ * \param max_extra_param 最大参数值
+ * \return true
+ * \return false
+ */
 bool CameraModelHasBogusParams(const int model_id,
                                const std::vector<double>& params,
                                const size_t width, const size_t height,
@@ -434,41 +505,44 @@ bool CameraModelHasBogusParams(const int model_id,
                                const double max_focal_length_ratio,
                                const double max_extra_param);
 
-// Transform world coordinates in camera coordinate system to image coordinates.
-//
-// This is the inverse of `CameraModelImageToWorld`.
-//
-// @param model_id     Unique model_id of camera model as defined in
-//                     `CAMERA_MODEL_NAME_TO_CODE`.
-// @param params       Array of camera parameters.
-// @param u, v         Coordinates in camera system as (u, v, 1).
-// @param x, y         Output image coordinates in pixels.
+/**
+ * \brief // api: 通过指定相机模型id来转换世界相机系到像素坐标系
+ *
+ * \param model_id
+ * \param params 参数
+ * \param u 世界相机系 (u, v, 1).
+ * \param v
+ * \param x 像素系 (x, y, 1)
+ * \param y
+ */
 inline void CameraModelWorldToImage(const int model_id,
                                     const std::vector<double>& params,
                                     const double u, const double v, double* x,
                                     double* y);
 
-// Transform image coordinates to world coordinates in camera coordinate system.
-//
-// This is the inverse of `CameraModelWorldToImage`.
-//
-// @param model_id      Unique identifier of camera model.
-// @param params        Array of camera parameters.
-// @param x, y          Image coordinates in pixels.
-// @param v, u          Output Coordinates in camera system as (u, v, 1).
+/**
+ * \brief // api: 通过指定相机模型id来转换像素坐标系到世界相机系
+ *
+ * \param model_id
+ * \param params 参数
+ * \param x 像素系 (x, y, 1)
+ * \param y
+ * \param u 世界相机系 (u, v, 1).
+ * \param v
+ */
 inline void CameraModelImageToWorld(const int model_id,
                                     const std::vector<double>& params,
                                     const double x, const double y, double* u,
                                     double* v);
 
-// Convert pixel threshold in image plane to world space by dividing
-// the threshold through the mean focal length.
-//
-// @param model_id      Unique identifier of camera model.
-// @param params        Array of camera parameters.
-// @param threshold     Image space threshold in pixels.
-//
-// @ return             World space threshold.
+/**
+ * \brief // api: 通过指定相机模型id来计算像素转世界相机系的阈值
+ *
+ * \param model_id
+ * \param params 参数
+ * \param threshold 像素系阈值
+ * \return double 世界相机系阈值
+ */
 inline double CameraModelImageToWorldThreshold(
     const int model_id, const std::vector<double>& params,
     const double threshold);
@@ -478,7 +552,7 @@ inline double CameraModelImageToWorldThreshold(
 ////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
-// BaseCameraModel
+// note: BaseCameraModel
 
 template <typename CameraModel>
 template <typename T>
@@ -600,7 +674,7 @@ void BaseCameraModel<CameraModel>::IterativeUndistortion(const T* params, T* u,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// SimplePinholeCameraModel
+// note: SimplePinholeCameraModel
 
 std::string SimplePinholeCameraModel::InitializeParamsInfo() {
   return "f, cx, cy";
@@ -649,7 +723,7 @@ void SimplePinholeCameraModel::ImageToWorld(const T* params, const T x,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// PinholeCameraModel
+// note: PinholeCameraModel
 
 std::string PinholeCameraModel::InitializeParamsInfo() {
   return "fx, fy, cx, cy";
@@ -700,7 +774,7 @@ void PinholeCameraModel::ImageToWorld(const T* params, const T x, const T y,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// SimpleRadialCameraModel
+// note: SimpleRadialCameraModel
 
 std::string SimpleRadialCameraModel::InitializeParamsInfo() {
   return "f, cx, cy, k";
@@ -769,7 +843,7 @@ void SimpleRadialCameraModel::Distortion(const T* extra_params, const T u,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// RadialCameraModel
+// note: RadialCameraModel
 
 std::string RadialCameraModel::InitializeParamsInfo() {
   return "f, cx, cy, k1, k2";
@@ -839,7 +913,7 @@ void RadialCameraModel::Distortion(const T* extra_params, const T u, const T v,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// OpenCVCameraModel
+// note: OpenCVCameraModel
 
 std::string OpenCVCameraModel::InitializeParamsInfo() {
   return "fx, fy, cx, cy, k1, k2, p1, p2";
@@ -914,7 +988,7 @@ void OpenCVCameraModel::Distortion(const T* extra_params, const T u, const T v,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// OpenCVFisheyeCameraModel
+// note: OpenCVFisheyeCameraModel
 
 std::string OpenCVFisheyeCameraModel::InitializeParamsInfo() {
   return "fx, fy, cx, cy, k1, k2, k3, k4";
@@ -998,7 +1072,7 @@ void OpenCVFisheyeCameraModel::Distortion(const T* extra_params, const T u,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// FullOpenCVCameraModel
+// note: FullOpenCVCameraModel
 
 std::string FullOpenCVCameraModel::InitializeParamsInfo() {
   return "fx, fy, cx, cy, k1, k2, p1, p2, k3, k4, k5, k6";
@@ -1091,7 +1165,7 @@ void FullOpenCVCameraModel::Distortion(const T* extra_params, const T u,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// FOVCameraModel
+// note: FOVCameraModel
 
 std::string FOVCameraModel::InitializeParamsInfo() {
   return "fx, fy, cx, cy, omega";
@@ -1222,7 +1296,7 @@ void FOVCameraModel::Undistortion(const T* extra_params, const T u, const T v,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// SimpleRadialFisheyeCameraModel
+// note: SimpleRadialFisheyeCameraModel
 
 std::string SimpleRadialFisheyeCameraModel::InitializeParamsInfo() {
   return "f, cx, cy, k";
@@ -1301,7 +1375,7 @@ void SimpleRadialFisheyeCameraModel::Distortion(const T* extra_params,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// RadialFisheyeCameraModel
+// note: RadialFisheyeCameraModel
 
 std::string RadialFisheyeCameraModel::InitializeParamsInfo() {
   return "f, cx, cy, k1, k2";
@@ -1378,7 +1452,7 @@ void RadialFisheyeCameraModel::Distortion(const T* extra_params, const T u,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// ThinPrismFisheyeCameraModel
+// note: ThinPrismFisheyeCameraModel
 
 std::string ThinPrismFisheyeCameraModel::InitializeParamsInfo() {
   return "fx, fy, cx, cy, k1, k2, p1, p2, k3, k4, sx1, sy1";

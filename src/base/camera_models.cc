@@ -86,9 +86,9 @@ std::unordered_map<int, std::string> InitialzeCameraModelIdToName() {
   return camera_model_id_to_name;
 }
 
+// note: 初始化所有相机模型 名称 & id，包括name->id 和 id->name两种键值对
 static const std::unordered_map<std::string, int> CAMERA_MODEL_NAME_TO_ID =
     InitialzeCameraModelNameToId();
-
 static const std::unordered_map<int, std::string> CAMERA_MODEL_ID_TO_NAME =
     InitialzeCameraModelIdToName();
 
