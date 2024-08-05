@@ -36,16 +36,19 @@
 
 namespace colmap {
 
+// note: 计时器
 class Timer {
  public:
   Timer();
 
+  // api: 开始、重启、暂停、回复、重置
   void Start();
   void Restart();
   void Pause();
   void Resume();
   void Reset();
 
+  // api: 不同单位的计时
   double ElapsedMicroSeconds() const;
   double ElapsedSeconds() const;
   double ElapsedMinutes() const;

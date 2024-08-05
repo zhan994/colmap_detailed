@@ -43,16 +43,27 @@
 namespace colmap {
 namespace {
 
+/**
+ * \brief // api: 检查相机模型参数设置是否合理
+ *
+ * \param camera_model 相机模型名称
+ * \param params 参数
+ * \return true
+ * \return false
+ */
 bool VerifyCameraParams(const std::string& camera_model,
                         const std::string& params) {
+  // step: 1 检查模型是否存在
   if (!ExistsCameraModelWithName(camera_model)) {
     std::cerr << "ERROR: Camera model does not exist" << std::endl;
     return false;
   }
 
+  // step: 2 转为模型id
   const std::vector<double> camera_params = CSVToVector<double>(params);
   const int camera_model_id = CameraModelNameToId(camera_model);
 
+  // step: 3 根据模型id来判断当前模型参数设置是否合理
   if (camera_params.size() > 0 &&
       !CameraModelVerifyParams(camera_model_id, camera_params)) {
     std::cerr << "ERROR: Invalid camera parameters" << std::endl;
@@ -61,8 +72,16 @@ bool VerifyCameraParams(const std::string& camera_model,
   return true;
 }
 
+/**
+ * \brief // api: 检查sift设置是否可行
+ *
+ * \param use_gpu 是否使用
+ * \return true
+ * \return false
+ */
 bool VerifySiftGPUParams(const bool use_gpu) {
 #if !defined(CUDA_ENABLED) && !defined(OPENGL_ENABLED)
+  // note: 若不支持gpu运算，use_gpu=true则会报错
   if (use_gpu) {
     std::cerr << "ERROR: Cannot use Sift GPU without CUDA or OpenGL support; "
                  "set SiftExtraction.use_gpu or SiftMatching.use_gpu to false."
@@ -120,6 +139,7 @@ int RunFeatureExtractor(int argc, char** argv) {
   options.AddExtractionOptions();
   options.Parse(argc, argv);  // 解析命令行参数
 
+  // step: 2 图片读取参数
   ImageReaderOptions reader_options = *options.image_reader;
   reader_options.database_path = *options.database_path;
   reader_options.image_path = *options.image_path;
@@ -129,7 +149,7 @@ int RunFeatureExtractor(int argc, char** argv) {
                                            (CameraMode)camera_mode);
   }
 
-  // 描述子计算范数
+  // step: 3 描述子计算范数
   StringToLower(&descriptor_normalization);
   if (descriptor_normalization == "l1_root") {
     options.sift_extraction->normalization =
@@ -142,7 +162,7 @@ int RunFeatureExtractor(int argc, char** argv) {
     return EXIT_FAILURE;
   }
 
-  // 图片列表更新
+  // step: 4 图片列表更新
   if (!image_list_path.empty()) {
     reader_options.image_list = ReadTextFileLines(image_list_path);
     if (reader_options.image_list.empty()) {
@@ -150,30 +170,35 @@ int RunFeatureExtractor(int argc, char** argv) {
     }
   }
 
+  // step: 5 通过相机模型名称检查是否存在当前相机模型
   if (!ExistsCameraModelWithName(reader_options.camera_model)) {
     std::cerr << "ERROR: Camera model does not exist" << std::endl;
   }
 
+  // step: 6 检查相机模型的参数是否合理
   if (!VerifyCameraParams(reader_options.camera_model,
                           reader_options.camera_params)) {
     return EXIT_FAILURE;
   }
 
+  // step: 7 检查sift的gpu设置
   if (!VerifySiftGPUParams(options.sift_extraction->use_gpu)) {
     return EXIT_FAILURE;
   }
 
+  // step: 8 是否同时gpu和opengl
   std::unique_ptr<QApplication> app;
   if (options.sift_extraction->use_gpu && kUseOpenGL) {
     app.reset(new QApplication(argc, argv));
   }
 
+  // step: 9 开始sift
   SiftFeatureExtractor feature_extractor(reader_options,
                                          *options.sift_extraction);
-
   if (options.sift_extraction->use_gpu && kUseOpenGL) {
     RunThreadWithOpenGLContext(&feature_extractor);
   } else {
+    std::cout << " >>>>>>>>>>>> Start SIFT,,," << std::endl;
     feature_extractor.Start();
     feature_extractor.Wait();
   }

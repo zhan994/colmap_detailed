@@ -38,8 +38,8 @@
 #include <future>
 #include <list>
 #include <queue>
-#include <unordered_map>
 #include <thread>
+#include <unordered_map>
 
 #include "util/timer.h"
 
@@ -96,6 +96,8 @@ namespace colmap {
 //      thread.Wait();
 //      thread.Timer().PrintElapsedSeconds();
 //
+
+// note: 线程
 class Thread {
  public:
   enum {
@@ -106,14 +108,13 @@ class Thread {
   Thread();
   virtual ~Thread() = default;
 
-  // Control the state of the thread.
-  virtual void Start();
-  virtual void Stop();
-  virtual void Pause();
-  virtual void Resume();
-  virtual void Wait();
+  virtual void Start();   // api: 控制线程启动
+  virtual void Stop();    // api: 控制线程停止
+  virtual void Pause();   // api: 控制线程暂停
+  virtual void Resume();  // api: 控制线程恢复
+  virtual void Wait();    // api: 控制线程等待连接
 
-  // Check the state of the thread.
+  // api: 检查线程状态
   bool IsStarted();
   bool IsStopped();
   bool IsPaused();
@@ -192,6 +193,7 @@ class Thread {
 //    }
 //    thread_pool.Wait();
 //
+// note: 线程池
 class ThreadPool {
  public:
   static const int kMaxNumThreads = -1;
@@ -257,6 +259,7 @@ class ThreadPool {
 //    producer_thread.join();
 //    consumer_thread.join();
 //
+// note: 工作队列
 template <typename T>
 class JobQueue {
  public:
@@ -311,12 +314,13 @@ class JobQueue {
 
 // Return the number of logical CPU cores if num_threads <= 0,
 // otherwise return the input value of num_threads.
+// api: 获取当前有效的线程数，若<=0则返回cpu的核心数
 int GetEffectiveNumThreads(const int num_threads);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation
 ////////////////////////////////////////////////////////////////////////////////
-
+// api: 线程池中的线程数
 size_t ThreadPool::NumThreads() const { return workers_.size(); }
 
 template <class func_t, class... args_t>

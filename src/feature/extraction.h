@@ -47,8 +47,15 @@ struct ImageData;
 }  // namespace internal
 
 // Feature extraction class to extract features for all images in a directory.
+// note: sift特征提取器
 class SiftFeatureExtractor : public Thread {
  public:
+  /**
+   * \brief // api: 构造特征提取器
+   * 
+   * \param reader_options 图片读取参数
+   * \param sift_options 特征提取参数
+   */
   SiftFeatureExtractor(const ImageReaderOptions& reader_options,
                        const SiftExtractionOptions& sift_options);
 
@@ -90,6 +97,7 @@ class FeatureImporter : public Thread {
 
 namespace internal {
 
+// note: 图片数据结构体
 struct ImageData {
   ImageReader::Status status = ImageReader::Status::FAILURE;
 

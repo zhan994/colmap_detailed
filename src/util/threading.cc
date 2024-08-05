@@ -50,9 +50,16 @@ Thread::Thread()
 void Thread::Start() {
   std::unique_lock<std::mutex> lock(mutex_);
   CHECK(!started_ || finished_);
+  // step: 1 等待线程绑定
   Wait();
+
+  // step: 2 计时器重启
   timer_.Restart();
+
+  // step: 3 绑定线程的函数
   thread_ = std::thread(&Thread::RunFunc, this);
+
+  // step: 4 状态初始化
   started_ = true;
   stopped_ = false;
   paused_ = false;
@@ -84,6 +91,7 @@ void Thread::Resume() {
 }
 
 void Thread::Wait() {
+  // note: thread_执行完join()后将不可再被连接
   if (thread_.joinable()) {
     thread_.join();
   }
