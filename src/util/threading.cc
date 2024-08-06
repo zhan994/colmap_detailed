@@ -70,10 +70,13 @@ void Thread::Start() {
 }
 
 void Thread::Stop() {
+  // step: 1 stopped_
   {
     std::unique_lock<std::mutex> lock(mutex_);
     stopped_ = true;
   }
+
+  // step: 2 暂停后恢复
   Resume();
 }
 
@@ -84,6 +87,8 @@ void Thread::Pause() {
 
 void Thread::Resume() {
   std::unique_lock<std::mutex> lock(mutex_);
+
+  // step: 如果暂停，paused_取消
   if (paused_) {
     paused_ = false;
     pause_condition_.notify_all();
@@ -123,8 +128,11 @@ bool Thread::IsFinished() {
 }
 
 void Thread::AddCallback(const int id, const std::function<void()>& func) {
+  // step: 检查回调
   CHECK(func);
   CHECK_GT(callbacks_.count(id), 0) << "Callback not registered";
+
+  // step: 新增函数
   callbacks_.at(id).push_back(func);
 }
 
@@ -193,7 +201,10 @@ void Thread::RunFunc() {
 
 ThreadPool::ThreadPool(const int num_threads)
     : stopped_(false), num_active_workers_(0) {
+  // step: 1 获取有效的线程数
   const int num_effective_threads = GetEffectiveNumThreads(num_threads);
+
+  // step: 2 绑定线程池的每个线程worker
   for (int index = 0; index < num_effective_threads; ++index) {
     std::function<void(void)> worker =
         std::bind(&ThreadPool::WorkerFunc, this, index);
@@ -206,28 +217,31 @@ ThreadPool::~ThreadPool() { Stop(); }
 void ThreadPool::Stop() {
   {
     std::unique_lock<std::mutex> lock(mutex_);
-
+    // step: 1 判断是否停止
     if (stopped_) {
       return;
     }
 
     stopped_ = true;
 
+    // step: 2 清空任务
     std::queue<std::function<void()>> empty_tasks;
     std::swap(tasks_, empty_tasks);
   }
 
+  // step: 3 任务cv通知解锁，并绑定所有线程
   task_condition_.notify_all();
-
   for (auto& worker : workers_) {
     worker.join();
   }
 
+  // step: 4 结束cv通知解锁
   finished_condition_.notify_all();
 }
 
 void ThreadPool::Wait() {
   std::unique_lock<std::mutex> lock(mutex_);
+  // note: 结束cv等待任务空并活跃的worker为0时自动解锁
   if (!tasks_.empty() || num_active_workers_ > 0) {
     finished_condition_.wait(
         lock, [this]() { return tasks_.empty() && num_active_workers_ == 0; });
@@ -237,10 +251,12 @@ void ThreadPool::Wait() {
 void ThreadPool::WorkerFunc(const int index) {
   {
     std::lock_guard<std::mutex> lock(mutex_);
+    // step: 1 线程id导线程池索引的映射
     thread_id_to_index_.emplace(GetThreadId(), index);
   }
 
   while (true) {
+    // step: 2 任务cv在停止或任务不为空时自动解锁获取任务并执行
     std::function<void()> task;
     {
       std::unique_lock<std::mutex> lock(mutex_);
@@ -258,6 +274,7 @@ void ThreadPool::WorkerFunc(const int index) {
 
     {
       std::unique_lock<std::mutex> lock(mutex_);
+      // step: 3 恢复活跃线程数
       num_active_workers_ -= 1;
     }
 
