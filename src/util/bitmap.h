@@ -51,18 +51,22 @@
 namespace colmap {
 
 // Templated bitmap color class.
+// note: bitmap color模版类
 template <typename T>
 struct BitmapColor {
-  BitmapColor();
-  BitmapColor(const T gray);
-  BitmapColor(const T r, const T g, const T b);
+  BitmapColor(); // api: rgb赋0
+  BitmapColor(const T gray); // api: rgb都给gray
+  BitmapColor(const T r, const T g, const T b); // api: rgb分别赋值
 
+  // api: 数据类型转换
   template <typename D>
   BitmapColor<D> Cast() const;
 
+  // api: 判断是否相等
   bool operator==(const BitmapColor<T>& rhs) const;
   bool operator!=(const BitmapColor<T>& rhs) const;
 
+  // api: 输出
   template <typename D>
   friend std::ostream& operator<<(std::ostream& output,
                                   const BitmapColor<D>& color);
@@ -73,6 +77,7 @@ struct BitmapColor {
 };
 
 // Wrapper class around FreeImage bitmaps.
+// note: 
 class Bitmap {
  public:
   Bitmap();
@@ -214,8 +219,17 @@ class JetColormap {
 
 namespace internal {
 
+/**
+ * \brief // api: bitmap color数据类型转换
+ * 
+ * \tparam T1 
+ * \tparam T2 
+ * \param value 输入T1类型数据
+ * \return T2 输出T2类型数据
+ */
 template <typename T1, typename T2>
 T2 BitmapColorCast(const T1 value) {
+  // note: 数据类型的最大最小防越界处理
   return std::min(static_cast<T1>(std::numeric_limits<T2>::max()),
                   std::max(static_cast<T1>(std::numeric_limits<T2>::min()),
                            std::round(value)));

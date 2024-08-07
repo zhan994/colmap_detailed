@@ -91,6 +91,7 @@ SiftFeatureExtractor::SiftFeatureExtractor(
   CHECK(reader_options_.Check());
   CHECK(sift_options_.Check());
 
+  // step: 1 camera_mask
   std::shared_ptr<Bitmap> camera_mask;
   if (!reader_options_.camera_mask_path.empty()) {
     camera_mask = std::make_shared<Bitmap>();
@@ -103,6 +104,7 @@ SiftFeatureExtractor::SiftFeatureExtractor(
     }
   }
 
+  // step: 2 多线程数
   const int num_threads = GetEffectiveNumThreads(sift_options_.num_threads);
   CHECK_GT(num_threads, 0);
 
